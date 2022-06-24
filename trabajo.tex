@@ -123,24 +123,60 @@
 	
 	Cuando queremos acordarnos de alguna cosa, generalmente sólo ``lo pensamos'' y con suerte nos acordamos y podemos utilizar la información obtenida. Si bien los científicos podrán no saber con exactitud todavía cómo funciona este proceso, mientras tanto tenemos que tener alguna forma de diseñar una memoria que nos permita acceder a los distintos fragmentos de información que contiene de una forma ordenada. Es por esto que la memoria tiene \textbf{direcciones de memoria}, que funcionan como identificadores para cada uno de los sectores de la memoria que podemos acceder de forma independiente según nuestras necesidades. 
 	
+	Notar que cada dirección de memoria se corresponde con una cantidad fija de espacio. Es decir, es como si dividiéramos la memoria en millones de pedazos iguales, y que cada uno de ellos sea accesible por una dirección de memoria. Típicamente en las computadoras de hoy en día, cada uno de estos pedazos tiene el tamaño de 1 \textit{byte}, el equivalente a 8 \textit{bits}. De todas formas, veremos que en el caso de \texttt{LC-3}, la memoria es ``16-bit addressable'', es decir, que cada pedazo tiene 16 bits.
+		
+	Para el que se encuentre perdido en este sentido, probablemente hayan visto que los archivos en la computadora tienen un determinado tamaño. Un documento de texto tiene un tamaño en el orden de los \textit{kilobytes}, una imagen en el orden de los \textit{megabytes}, y una película probablemente en el orden de los \textit{gigabytes}. Son todas unidades de escala basadas en los bytes. Y para que sepan, cada bit es literalmente un 0 o un 1, por lo que si hablamos de 12 kilobytes (kB), es lo mismo que decir $12 * 1000 = 12\,000$ bytes, también equivalente a $12.000 * 8 = 96\,000$ bits, o sea, un conjunto de $96\,000$ 0s y 1s. No confundir los kilobytes con los $kibibytes$, esos se multiplican por $1024$ cada paso, en vez de por $1000$.\\
 	
+	Igual nos estamos yendo del tema. A lo que vamos es que la memoria está dividida en pedazos para que podamos accederla y modificarla fácilmente. Si bien hablamos de archivos para ilustrar la idea de los tamaños, estos ocupan espacio en un medio de almacenamiento, el cual ya habíamos diferenciado de la memoria. Comúnmente los programas se encuentran almacenados  en medios de almacenamiento no volátiles (justamente, por ejemplo, un disco duro), y a la hora de ejecutarlos se cargan en memoria, que es de uso inmediato.
 	
-	%Es por esto que el ISA, además del set de instrucciones, define lo que se conocen como \textbf{addressing modes}, que en español conocemos como \textit{modos de direccionamiento}.
+	Al cargarse el programa en memoria podemos saber las direcciones que ocupa, como también las direcciones en las cuales se leyó la información a procesar, en este caso, los números a sumar. Así, una de las piezas que nos falta para resolver nuestro problema, es cómo indicarle al programa en qué parte de la memoria se encuentran los números ingresados. Estas distintas formas de indicar direcciones de memoria en el programa, se las llama \textbf{addressing modes} (en español, \textit{modos de direccionamiento}, y también se encuentran especificados en el ISA.
 	
-	%A modo práctico, incluye las distintas formas en las que podemos indicar dónde se encuentra la información, cuando ejecutamos una instrucción. Veremos aquellos que \texttt{LC-3} tiene a medida que vayamos introduciendo las distintas instrucciones que los usan.\\
+	De forma simplificada, podríamos decir que la información se encuentra a una cierta cantidad de direcciones de memoria de distancia desde la ubicación de la instrucción en memoria, como también podríamos especificar concretamente la dirección de memoria de forma absoluta. Todo dependerá del contexto con el que estemos trabajando en nuestro programa. Más adelante veremos los addressing modes de los cuales disponemos con \texttt{LC-3}.
 	
+	\subsection{¿De qué forma tengo que entender esos 1s y 0s?}
+	
+	Ya sabemos que se está haciendo largo. No se preocupen, ya casi estamos terminando. Al menos les sirve para entender lo compleja que es una computadora, sin mencionar que estamos simplificando el proceso para que sea más ameno y fácil de entender.\\
+	
+	Una vez que el programa sabe en qué lugar de la memoria encontrar los números con los cuales operar, afortunadamente y como ya mencionamos, es común que exista una instrucción para poder sumar dos números. Sin embargo, ¿cómo sabe el programa cómo interpretar esos números?
+	
+	Otra cosa que nos parece intuitiva es que el símbolo \textit{6} represente el número dicho. Aunque también sabemos que \textit{seis} representa lo mismo. Y en números romanos, sucede con \textit{VI} de igual forma.
+	
+	De la misma forma que tenemos varias maneras de hablar de lo mismo, también es así con las computadoras. Nuevamente, los \textbf{data types} (\textit{tipos de datos}, en español) están también definidos en el ISA, y haremos uso de ellos según nos sea más conveniente. Un tipo de dato común en programación es la representación de los números en \textit{binario}, lo cual naturalmente se da por lo que ya venimos explicando, que los procesadores están compuestos de transistores, y que su estado de encendido o apagado representa un 1 o un 0 respectivamente. También la representación de la información como conjuntos de bits en la memoria, y en general el uso de lógica binaria a lo largo de un sistema de computadora facilita las distintas tareas como programadores.\\
+	
+	Para el caso de \texttt{LC-3}, veremos que sólo tenemos a disposición una única forma de representar los datos: como enteros en \textbf{complemento a 2}. Debido a que por ahora no entraremos en los detalles, podemos asumir para nuestro problema que la instrucción de suma que usaremos, ya sabe cómo están representados los números a sumar en la memoria.
 	
 	\subsection{Pasando en limpio}
 	
-	% i/o
-	% data types
-	% memory
+	Tras explicar todas las distintas partes (a modo general) que forman parte del proceso para que una computadora pueda hacer una tarea que nos puede parecer tan básica como sumar dos números, intentaremos resumir lo que aprendimos, para continuar con las ideas claras.\\
+	
+	En resumen:
+	
+	\begin{itemize}
+		\item La operación de suma se encuentra como una instrucción en un programa el cual se carga en la memoria, ubicándose en un conjunto de direcciones de memoria.
+		\item El programa debe de contener, y hacer uso, de las instrucciones necesarias para leer los números, y almacenarlos en otras posiciones en la memoria.
+		\item Al guardarse los números, éstos quedan representados con un determinado tipo de dato, el cual el programa tiene que tener en cuenta a la hora de hacer la operación.
+		\item Así, a la instrucción de suma se le indican dónde se encuentran los números guardados mediante un modo de direccionamiento, el cual apunta a las direcciones correspondientes de memoria. La operación es capaz de entender la forma en la cual aquellos números se encuentran allí representados.
+		\item Tras ejecutar la instrucción de suma, el resultado debe ser almacenado en otro lugar de la memoria.
+		\item Finalmente, debe de indicarse la ubicación del resultado antes obtenido, para que éste sea informado al usuario mediante un dispositivo de salida adecuado, con las instrucciones correspondientes para este propósito.
+	\end{itemize}
+
+	Así parece más sencillo, ¿no? Con esta idea aproximada del proceso, esperamos que puedan seguirnos mejor mientras exploramos las particularidades de \texttt{LC-3}, su ISA y los programas que estaremos desarollando para este \textit{lenguaje de bajo nivel}.
 
 	\section{Una vez más, ¿qué significa \textit{alto} y \textit{bajo} nivel?}
 	
-	Para que se sientan más familiares con lo que vamos a hablando, vamos a estar comparando o relacionando lo que expliquemos con el lenguaje \texttt{C}, el cual ya probablemente conocen por su trayecto en la escuela. Al fin y al cabo, es más sencillo partir desde lo que ya saben, que explicar todo desde cero.
+	Volvemos a la pregunta del comienzo del capítulo, para resolver de una vez la incógnita: \textbf{¿qué es un \textit{lenguaje} de bajo nivel?}
 	
-	Cuando 
+	Para que se sientan más familiares con lo que vamos a hablando, vamos a estar comparando o relacionando lo que expliquemos con el lenguaje \texttt{C}, el cual ya probablemente conocen por su trayecto en la escuela. Al fin y al cabo, es más sencillo partir desde lo que ya saben, que explicar todo desde cero.\\
+	
+	Capaz una forma distinta de pensarlo, sin dar muchas vueltas más es:
+	
+	\begin{center}
+		\textit{¿por qué necesitamos ahora saber todo esto de sobre cómo funciona una computadora, y lo ignorábamos cuando programábamos en \texttt{C}?}
+	\end{center}
+	
+	Primero y principal, capaz sería muy agobiante dar todo esto en 3er año. Además, la idea es dar esto a quienes eligieron la especialidad y a los cuales esta información sea relevante si luego pretenden desempeñarse como Técnicos en Informática Personal y Profesional.
+	
+	Pero más allá de los detalles del cursado, en la pregunta precisamente radica la diferencia entre un lenguaje de bajo nivel, y uno de alto nivel.
 	
 	\section{Felicitaciones, se ahorró más de 150 páginas de lectura}
 
