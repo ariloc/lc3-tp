@@ -1,8 +1,6 @@
 ; Nth Fibonacci number, implemented recursively with the use of a stack
 ;
                 .ORIG   x3000
-FIBO_N          .FILL   x0004           ; FIBO(n) will be computed
-RES_FIBO        .FILL   x0000
                 LD      R1, FIBO_N
                 JSR     FIBO
                 ST      R1, RES_FIBO
@@ -48,6 +46,8 @@ base_case       AND     R1, R1, #0
                 RET
 ;
 SaveRes         .FILL   x0000
+FIBO_N          .FILL   x0004           ; FIBO(n) will be computed
+RES_FIBO        .FILL   x0000           ; The returned result of the computation
 ;                   
 ;
 ; Stack implementation

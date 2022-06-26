@@ -2,12 +2,23 @@
 
 \usepackage[T1]{fontenc}
 \usepackage[spanish,activeacute]{babel}
+\usepackage[dvipsnames]{xcolor}
 \usepackage{lmodern}
 \usepackage{graphicx}
 \usepackage{caption,subcaption}
 \usepackage{hyperref, url}
+\usepackage{minted}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\tcbuselibrary{minted}
+\usepackage{multicol}
+\usepackage{tikz}
+\usetikzlibrary{patterns,decorations.pathreplacing}
+\usepackage{tabularx}
 
 \usepackage[left=3cm,right=3cm,top=3cm,bottom=3cm]{geometry}
+
+\definecolor{brown-asm}{HTML}{870000}
 
 \title{
 	\textsc{\Large{}\raggedleft{Instalación y Reemplazo de Componentes Internos}}\\
@@ -77,11 +88,14 @@
 	
 	De todas formas, probablemente habrán notado que todavía no definimos el significado de \texttt{ISA}, y eso que habíamos dicho que no había que abusar de las abreviaturas.
 	
-	El \textbf{Instruction Set Architecture} define un modelo abstracto fundamental de una computadora, y nos da la información de los elementos que tenemos a disposición como programadores para que nuestro software pueda interactuar con el hardware definido por una arquitectura. Para que quede claro, la arquitectura es, a modo general, el diseño de cómo va a funcionar la computadora: la interacción entre sus distintos componentes, las reglas que lo rigen y su implementación (es decir, cómo lo llevamos a cabo en un escenario real).
+	El \textbf{Instruction Set Architecture} define un modelo abstracto fundamental de una computadora, y nos da la información de los elementos que tenemos a disposición como programadores para que nuestro software pueda interactuar con los componentes (a lo que haría al hardware) definidos por la arquitectura. Para que quede claro, la \textbf{arquitectura de una computadora} es, a modo general, el diseño de cómo va a funcionar: la interacción entre sus distintos componentes, las reglas que lo rigen y algunos detalles sobre su posible implementación (es decir, cómo lo llevamos a cabo en un escenario real). La forma concreta en que se implementa un ISA para un procesador dado se lo conoce como \textbf{microarquitectura}.
+	
+	Así podemos decir que el \textit{ISA} y la \textit{microarquitectura} son áreas dentro de lo que abarca la \textit{arquitectura de una computadora}.
 	
 	En términos simples, el ISA especifica la parte de la arquitectura sobre qué es lo que se encuentra a disposición del programador para poder decirle a la computadora qué es lo que tiene que hacer. Es por esto que antes habíamos introducido el concepto del set de instrucciones, ya que es una de las partes principales del ISA. Reiteramos, es \textit{una de las partes principales}, pero esto no implica que sea todo.\\
 	
 	\subsection{¿Cómo nos llega la información?}
+	\label{sec:isa-io}
 	
 	Ya veremos que una de las instrucciones de \texttt{LC-3} es \texttt{ADD}, el cual uno puede asumir que sirve para sumar dos números. Ahora bien, pensá que un amigo te dice literalmente ``\textit{sumá dos números}''. Lo primero que uno responde es, ``\textit{¿qué números?}''. Entonces te apunta a una hoja de papel, desde la cual tenés que leer los números.
 	
@@ -110,6 +124,7 @@
 	Créannos que a lo largo de este texto se les va a ir aclarando de lo que estamos hablando.
 	
 	\subsection{¿La operación se guarda?}
+	\label{sec:isa-memory}
 	
 	Entonces ya sabemos leer los números, guardarlos, hacer la operación, y devolver el resultado. ¿Nos falta algún paso más?
 	
@@ -178,15 +193,144 @@
 	
 	Pero más allá de los detalles del cursado, en la pregunta precisamente radica la diferencia entre un lenguaje de bajo nivel, y uno de alto nivel.
 	
-	\section{Felicitaciones, se ahorró más de 150 páginas de lectura}
-
-	La realidad es que mucha información se perdió entre medio, pero nos enfocamos en lo necesario para continuar con el próximo capítulo.
+	\subsection{\texttt{C} es un lenguaje de alto nivel...}
 	
-	\chapter{Bibliografía} % extender y armar bien posta
+	...casi. Un \textbf{lenguaje de alto nivel} es aquel que provee una abstracción respecto del funcionamiento interno de la computadora. En este sentido, es común que un lenguaje de alto nivel haga uso de vocabulario o elementos del lenguaje hablado, que faciliten expresar los programas que queremos desarrollar.
+	
+	Esto lo podemos ver a partir de estructuras de control como \texttt{if} (``si'' en inglés) o \texttt{while} (``mientras'', en inglés), entre otras. Cuando usamos estos elementos, no es necesario conocer las instrucciones del procesador, ni el manejo de la memoria, brindándonos mayor flexibilidad y, en cierta forma, haciendo que sea más legible para un principiante o alguien que simplemente no sepa de programación.
+	
+	Si creen que \texttt{C} no es muy fácil de leer, pueden ver el ejemplo de otros lenguajes de alto nivel como \texttt{COBOL}, diseñado hace más de 60 años con el objetivo de ser lo más parecido posible a la habla inglesa. 
+	
+	\begin{figure}[h]
+		\centering
+\begin{tcblisting}{listing engine=minted, minted language=cobolfree, listing only, hbox}
+IDENTIFICATION DIVISION.
+PROGRAM-ID. HELLOWRD.
+
+PROCEDURE DIVISION.
+DISPLAY "HOLA MUNDO".
+STOP RUN.
+\end{tcblisting}
+		\caption{Ejemplo de programa ``Hola Mundo'' hecho en \texttt{COBOL}}
+	\end{figure}
+
+	Dicho esto, el motivo por el cual decimos que \texttt{C} es \textit{casi} un lenguaje de alto nivel, es porque el concepto de ``alto nivel'' de cierta forma puede depender del contexto. Por definición, \texttt{C} es un lenguaje de alto nivel, y es totalmente entendible si lo comparamos con \texttt{LC-3}. Sin embargo, si tenemos en cuenta, más allá del ejemplo de \texttt{COBOL}, el caso de lenguajes más nuevos como \texttt{Javascript} o \texttt{Python}, estos últimos brindan un nivel superior de abstracción que \texttt{C}.
+	
+	Por ejemplo, una de las tareas principales programando en \texttt{C} es el manejo de la memoria. Además, mucho código que interactúa directamente con el hardware de la computadora se escribe en \texttt{C}. Parte del kernel de Linux está escrito en \texttt{C}!\\
+	
+	De esta forma, como podemos ver, cuando hablamos si que a uno ``le gusta el alto/bajo nivel'' o de la diferencia entre lenguajes de \textit{alto} y \textit{bajo} nivel, es una manera en la que nos referimos a qué tanta abstracción brinda el lenguaje con respecto a los detalles específicos del hardware que utilizamos.
+	
+	Cerrando el tema con \texttt{C}, al ser de ``alto nivel'' requiere un compilador que traduzca el código escrito, en código de máquina que la computadora pueda interpretar. Es decir, traducir en instrucciones del procesador concreto donde lo compilemos, como también depende del sistema operativo, y de otros elementos que hacen especial a la computadora donde trabajamos. También por esto, por lo general el código de \texttt{C} es ``portable'' entre distintas plataformas, ya que mientras exista un compilador que pueda traducir el código fuente en código de máquina para el caso en el que lo necesitemos, podremos (generalmente) recompilar el programa según se lo necesite.
+	
+	Cuando instalamos un programa, es común descargar lo que se conocen como los \textit{binarios} o \textit{ejecutables}, es decir, el código ya compilado. Como hoy en día la mayor parte de la interacción con el hardware está resuelta a través del sistema operativo, uno tiende a encontrar que puede descargar versiones para Mac, Windows o Linux. Estas versiones están compiladas por separado ya que requieren de interfaces diferentes para poder intermediar con el sistema operativo en realizar las tareas para las que los programas están destinados.
+	
+	Además, ayuda en este sentido que hoy en día la mayoría de los procesadores de computadora usan una arquitectura común: \texttt{x86\_64}. Puede que alguna vez hayas visto, aunque haya cobrado menos sentido en los últimos años, que ciertos programas son solo compatibles con procesadores de ``64 bits''.  De ahí viene el ``64'' del nombre, ya que esta arquitectura es una versión ``de 64 bits'' de la arquitectura \texttt{x86}. Para no irnos más de tema, lo dejamos a su voluntad si quieren investigar más al respecto.
+	
+	
+	\subsection{¿Qué es \texttt{LC-3}?}
+	
+	Creemos que a este punto quedó más que claro que \texttt{LC-3} es un lenguaje de bajo nivel, no? Un segundo... hay una pregunta más importante que todavía nos falta por hacer. \textbf{¿Qué es \texttt{LC-3}?}
+	
+	¡Las abreviaturas \textit{strike again}! \texttt{\textbf{LC-3}} son las iniciales de \textbf{Little Computer 3}, en español, \textit{Pequeña Computadora 3}. Podrán deducir que con un nombre parecido al de una película, el \textit{3} está ahí porque \texttt{LC-3} es la tercera iteración de algo. En este caso, la tercera versión de una \textbf{arquitectura}, que utilizamos con fines educativos para empezar a aprender a programar en \texttt{Assembly}.\\
+	
+	Pero entonces... si \texttt{LC-3} es una arquitectura, \textit{¿cómo es también un lenguaje?}
+	
+	Cuando diseñamos una arquitectura, ésta define un conjunto de instrucciones y herramientas disponibles al programador, que nos permiten poder correr programas en un procesador que implemente el ISA. Dichas herramientas determinan, al fin y al cabo, un lenguaje con el que tenemos que hablar con la computadora para que ésta pueda entender lo que le estamos diciendo.
+	
+	¿Recuerdan cuando en la sección \ref{sec:isa-io} nos preguntábamos si los pulsos electricos que nos llegaban en la entrada formaban algún patrón? Bueno, pensemos esto para el caso de las instrucciones que le llegan al procesador. De alguna forma, los pulsos eléctricos que le transmitimos, los 0s y 1s que viajan, deben indicarle al procesador que ejecute la instrucción \texttt{ADD}, por ejemplo. Aquellos detalles, están definidos en el ISA. Y el patrón de aquellos bits, que utiliza nuestro programa como directivas al procesador, son en cierta forma, un \textit{lenguaje}, una forma de comunicarnos con la computadora.\\
+	
+	\subsection{\texttt{LC-3}, un lenguaje de bajo nivel}
+	
+	Habiendo entendido un poco mejor \textit{qué} es \texttt{LC-3}, ahora vamos a cerrar con el concepto de lenguaje de \textit{bajo nivel}.
+	
+	Mientras que un lenguaje de \textit{alto nivel} nos abstrae de los detalles sobre el funcionamiento interno de la computadora, un \textbf{lenguaje de bajo nivel}, en su contraparte, prácticamente no provee abstracción alguna del ISA, a lo que se encuentra íntimamente relacionado con las instrucciones y la estructura que el ISA define. Por este motivo, más allá de que pueda llamársele a lenguajes como \texttt{C} ser de bajo nivel en comparación con otros, en general al hablar del bajo nivel nos referimos al \textbf{código de máquina}, o el \textbf{código \texttt{Assembly}}.
+	
+	Para aquel que no haya visto nunca un fragmento de código de bajo nivel, vamos a adelantarnos un poco y tomar el ejemplo de la instrucción \texttt{ADD}. Como recordarán de la sección \ref{sec:isa-io}, la instrucción \texttt{ADD} permite sumar dos números en el lenguaje de \texttt{LC-3}. El nombre de la instrucción está así definido en su ISA, y es aquel con el cual la invocamos en código \texttt{Assembly}.
+	
+	\begin{figure}[h]
+		\centering
+\begin{tcblisting}{listing engine=minted, minted language=gas, listing only, hbox}
+ADD	R0, R1, R2
+\end{tcblisting}
+	\caption{Ejemplo de instrucción de suma en \texttt{Assembly} de \texttt{LC-3}}
+	\label{fig:add-asm-example}
+	\end{figure}
+
+	La Figura \ref{fig:add-asm-example} nos muestra un ejemplo de cómo usaríamos la instrucción \texttt{ADD}, dentro del código de \texttt{Assembly} de \texttt{LC-3}. En aquel caso, se está indicando que se sumen los números contenidos en los \textit{registros} \texttt{R1} y \texttt{R2}, y que el resultado de la operación se guarde en el registro \texttt{R0}. Más adelante explicaremos qué son, y el rol que cumplen los registros. Por el momento queremos que vean y vayan pensando, cómo todos los conceptos que venimos aprendiendo se plasman el código de un programa.
+	
+	Además, también podríamos representar la misma instrucción con su código de máquina correspondiente, tal como se muestra en la Figura \ref{fig:add-machine-example}.
+	
+	\begin{figure}[h]
+		\centering
+		\begin{tikzpicture}[scale=.75]
+				\draw (0,0) -- (16,0) -- (16,1.5) -- (0,1.5) -- cycle;
+				\draw (0,1.5) -- (0,1.75); 
+				\draw (4,0) -- (4,1.75);
+				\draw (7,0) -- (7,1.75); 
+				\draw (10,0) -- (10,1.75);
+				\draw (11,0) -- (11,1.75);
+				\draw (13,0) -- (13,1.75);
+				\draw (16,0) -- (16,1.75);
+				\path (0,1.5) -- node [yshift=-4pt,label={15}]{}(1,1.5);
+				\path (3,1.5) -- node [yshift=-4pt,label={12}]{}(4,1.5);
+				\path (4,1.5) -- node [yshift=-4pt,label={11}]{}(5,1.5);
+				\path (6,1.5) -- node [yshift=-4pt,label={9}]{}(7,1.5);
+				\path (7,1.5) -- node [yshift=-4pt,label={8}]{}(8,1.5);
+				\path (9,1.5) -- node [yshift=-4pt,label={6}]{}(10,1.5);
+				\path (10,1.5) -- node [yshift=-4pt,label={5}]{}(11,1.5);
+				\path (11,1.5) -- node [yshift=-4pt,label={4}]{}(12,1.5);
+				\path (12,1.5) -- node [yshift=-4pt,label={3}]{}(13,1.5);
+				\path (13,1.5) -- node [yshift=-4pt,label={2}]{}(14,1.5);
+				\path (15,1.5) -- node [yshift=-4pt,label={0}]{}(16,1.5);
+				\foreach \x in {0,...,16}
+					{\draw (\x,1.5) -- (\x,1.25); \draw (\x,0) -- (\x,0.25);}
+					
+				\def\array{0,0,0,1,  0,0,0,   0,0,1,   0,0,0,    0,1,0}
+				\foreach [count=\i] \x in \array
+					{\path (\i-1,.75) -- node [midway] {\Large \x} (\i,.75);}
+					
+				\draw [thick,decoration={brace,mirror,raise=4pt},decorate] (0.05,0) -- (3.95,0) node[midway,below,yshift=-8pt] {\texttt{\textcolor{blue}{ADD}}}; 
+				\draw [thick,decoration={brace,mirror,raise=4pt},decorate] (4.05,0) -- (6.95,0) node[midway,below,yshift=-8pt] {\texttt{\textcolor{brown-asm}{R0}}}; 
+				\draw [thick,decoration={brace,mirror,raise=4pt},decorate] (7.05,0) -- (9.95,0) node[midway,below,yshift=-8pt] {\texttt{\textcolor{brown-asm}{R1}}}; 
+				\draw [thick,decoration={brace,mirror,raise=4pt},decorate] (13.05,0) -- (15.95,0) node[midway,below,yshift=-8pt] {\texttt{\textcolor{brown-asm}{R2}}}; 
+		\end{tikzpicture}
+		\caption{Ejemplo de instrucción de suma en \textit{código de máquina} de \texttt{LC-3}}
+		\label{fig:add-machine-example}
+	\end{figure}
+	
+	En la figura en cuestión ya podrán observar algunas cosas más de las que hablamos, como que la longitud de la instrucción completa ocupa un total de 16 bits, lo que haría que abarque el tamaño de una dirección de memoria (recordemos que en \texttt{LC-3} la memoria es ``16-bit addressable'', [Sección \ref{sec:isa-memory}]). Además, podemos ver que los registros antes nombrados en \texttt{Assembly} (\textcolor{brown-asm}{\texttt{R0}}, \textcolor{brown-asm}{\texttt{R1}} y \textcolor{brown-asm}{\texttt{R2}}), para el código de máquina los representamos en binario.
+	
+	Para no dejar dudas (el subíndice representa la base en la que se encuentra el número): \vspace{3pt}
+	
+	\noindent\begin{tabularx}{\textwidth}{>{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+		$000_2 = 0_{10}$ & $001_2 = 1_{10}$ & $010_2 = 2_{10}$
+	\end{tabularx}\\
+	
+	En el próximo capitulo estaremos desarollando el detalle de cada una de las instrucciones de \texttt{LC-3}.
+	
+	Más allá de esto, como pueden ver, tanto con código de máquina como con \texttt{Assembly}, en ambos casos hacemos uso de operaciones relacionadas con el ISA, casi sin abstracciones respecto a la arquitectura. Como mucho y como también veremos, \texttt{Assembly} le da mayor legibilidad al código respecto al código de máquina (binario), entre otros elementos útiles por conocer.
+	
+	\section{Felicitaciones! Lo que nos espera el próximo capítulo}
+
+	Enhorabuena, con toda esta introducción teórica, ya deberían tener todo lo necesario para adentrarnos en mayor profundidad, en los detalles del ISA de \texttt{LC-3}.
+	
+	% TODO: Revisar que esté bien esto
+	Nos veremos en el próximo capítulo con todo lo que necesitan saber sobre las instrucciones que tienen a su disposición, el funcionamiento de la memoria, detalles sobre los registros, I/O, llamadas al sistema, el stack, y ejemplos de cómo implementar desde estructuras básicas en programación (que ya probablemente hayan visto en \texttt{C}) como operaciones aritméticas, loops e ifs, hasta casos de uso más avanzados como subrutinas y recursión.
+	
+	% TODO: Assembler vs Assembly
+	
+	% TODO: Al explicar Assembly, destacar el buen uso de los .FILL al ejecutar el programa -> mostrar como un .FILL puede dar OVERFLOW y romper programa (caso Fibonacci grande?)
+	% TODO: Hacer programa Fibonacci pero con I/O!!!!
+	
+	% TODO: Nombrar emulador web https://wchargin.com/lc3web/
+	\chapter{El \texttt{ISA} de \texttt{LC-3}}
+	
+	\chapter{Bibliografía} % TODO: extender y armar bien posta
 	
 	\begin{itemize}
-		\item \url{https://www.techpowerup.com/review/intel-core-i9-12900k-alder-lake-12th-gen/2.html}
-		\item \url{https://www.gamersnexus.net/guides/833-reading-a-cpu-die}
+		\item \url{https://www.techpowerup.com/review/intel-core-i9-12900k-alder-lake-12th-gen/2.html}. Consultado el 23 de junio de 2022.
+		\item \url{https://www.gamersnexus.net/guides/833-reading-a-cpu-die}. Consultado el 23 de junio de 2022.
+		\item \url{https://www.tutorialbrain.com/mainframe/cobol_hello_world_program/}. Consultado el 25 de junio de 2022.
 		\item Introduction to Computer Systems, Patt \& Patel % extender y armar bien
 	\end{itemize}
 	
