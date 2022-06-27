@@ -442,7 +442,7 @@ ADD	R0, R1, R2
 	
 	Tal y como les prometimos en la Sección \ref{sec:lc3-low-level}, vamos explicar de una buena vez qué son los registros, y por qué es tan importante conocerlos para poder programar en el lenguaje de \texttt{LC-3}.
 	
-	Los \textbf{registros} son espacios de almacenamiento temporales que son accesibles con mayor rapidez que la memoria. De hecho, puede tomar varios ciclos del procesador leer un valor desde esta última, mientras que los registros se pueden acceder en 1 solo ciclo. Por este motivo, los registros son frecuentemente utilizados para guardar los resultados intermedios obtenidos de las operaciones que realicemos durante la ejecución de un programa. La razón por la cual no se utilizan registros en reemplazo de la memoria, es que su rápidez, entre otros factores, se debe a que están incluidos dentro del procesador, sumado a que son más caros de producir.
+	Los \textbf{registros} son espacios de almacenamiento temporales que son accesibles con mayor rapidez que la memoria. De hecho, puede tomar varios ciclos del procesador leer un valor desde esta última, mientras que los registros se pueden acceder en 1 solo ciclo. Por este motivo, los registros son frecuentemente utilizados para guardar los resultados intermedios obtenidos de las operaciones que realicemos durante la ejecución de un programa. La razón por la cual no se utilizan registros en reemplazo de la memoria, es que su rapidez, entre otros factores, se debe a que están incluidos dentro del procesador, sumado a que son más caros de producir.
 	
 	De esta forma, en la mayoría de las arquitecturas, incluida la de \texttt{LC-3}, se incluyen los llamados \textbf{registros de propósito general} (cada uno toma el nombre de \textit{general purpose register}, abreviado GPR). Estos registros son utilizados como punto de llegada de la información desde la memoria, transfiriéndose los datos en ellos a pedido del programa, mediante el uso de ciertas instrucciones definidas en el ISA para este propósito. Una vez en los registros, se pueden llevar a cabo las operaciones que sean necesarias.
 	
@@ -454,22 +454,85 @@ ADD	R0, R1, R2
 	
 	\subsubsection{Registros de propósito general reservados} % R0, R5 y/o R6 capaz si hay stack? Seguro R7.
 	
+	Como dijimos, no todos los registros de propósito general pueden ser utilizados con completa libertad. A diferencia de las direcciones de memoria reservadas, en teoría podríamos usar los registros reservados siempre y cuando tengamos ciertas precauciones. Aunque lo ideal es evitar su uso más allá del propósito para los cuales fueron asignados, a fin de evitar confusiones en el código.
+	
+	\begin{table}[h]
+		\centering
+		\begin{tabular}{l p{.6\linewidth}}
+			\toprule
+			\textbf{Registro reservado} &\textbf{Uso del registro} \\ \midrule
+			\texttt{\large{}R0} & Utilizado para recibir o enviar argumentos desde o hacia el sistema operativo mediante instrucciones \texttt{TRAP}. \\
+			\texttt{\large{}R7} & Utilizado para guardar la dirección del \texttt{PC} incrementado al utilizar las instrucciones \texttt{JSR} o \texttt{JSRR}. \\
+			\bottomrule
+		\end{tabular}
+		\caption{Registros de propósito general reservados}
+		\label{table:reserved-reg}
+	\end{table}
+
+	El Cuadro \ref{table:reserved-reg} detalla los registros de propósito general reservados. Notar que a pesar de que les llamamos ``reservados'' realmente, como dijimos, podríamos utilizarlos con sus debidas precacuciones.
+	
+	Si bien en ambos casos, su propósito excede más allá de lo que vimos hasta el momento, quédense con la idea que podrían utilizar aquellos registros siempre y cuando no hagan uso de las instrucciones mencionadas junto con ellos, o eviten tener información relevante almacenada en aquellos registros a la hora de ejecutar alguna de las instrucciones relacionadas.
+	
 	\subsection{El MAR y el MDR} % proceso de cargar en memoria, métodos de direccionamiento?
+	\label{sec:mar-mdr}
+	
+	El motivo por el cual distinguimos que los registros que podemos usar para almacenar información temporal con nuestro programa, son los llamados de \textit{propósito general}, es porque existen otros registros que cumplen funciones necesarias al funcionamiento de la arquitectura, y que no son accesibles al usuario. A continuación, vamos a ver dos de ellas: el \textit{MAR} y el \textit{MDR}.
+	
+	\subsubsection{De la memoria a los registros, y viceversa}
+	
+	Cuando seguramente creían que sabían suficiente sobre la memoria, y que no íbamos a ver más detalles al respecto, les planteamos la siguiente pregunta: \textit{¿Cómo llega la información desde la memoria a los registros, y viceversa?}
+	
+	La pregunta es un poco tramposa, porque no decimos \textit{cuáles} registros. Y es que antes de llegar los datos a los registros de propósito general, primero pasan por un registro intermedio, el \textbf{Memory's Data Register} (abreviado \textbf{MDR}). Tanto este registro, como el \textbf{Memory's Address Register} (abreviado \textbf{MAR}) se encuentran en directa cercanía con la memoria, y cumplen el rol de intermediarios para intercambiar información con ella.\\
+	
+	Cuando queremos leer datos de la memoria, la dirección a consultar ingresa en el MAR, y se le envía un pulso a la memoria para ``interrogarla''. El resultado de la operación se guarda en el MDR, y de allí se puede transferir a, por ejemplo, los registros de propósito general.
+	
+	De forma inversa, para escribir un valor en la memoria, debemos ingresar tanto la información a guardar en el MDR, como la dirección que queremos modificar en el MAR. Posteriormente, se le envía un pulso a la memoria que le indica que debe llevar la operación de \textit{write} (escritura). Aquel valor que haya estado presente anteriormente en la dirección especificada, será sobreescrita por el nuevo valor.\\
+	
+	En el caso de \texttt{LC-3}, ambos registros tienen un tamaño de 16 bits. El motivo de esto lo podemos ver a partir del uso que vimos para cada uno. Como el MAR siempre contiene una dirección de memoria, debe de tener la cantidad suficiente de bits para representar todas las posibles $2^{16}$ direcciones. Mientras, como el MDR siempre contiene un valor a escribirse en la memoria, debe de poder contener todos los posibles $2^{16}$ valores (una vez más, la memoria es ``16-bit addressable'').
+	
+	% gráfica MAR-MDR?
 	
 	\subsection{Los códigos de condición} %npz? relacionar con MAR-MDR?
 	
-	\subsection{Las instrucciones en memoria} 
+	Sumándose a la lista de registros que tiene \texttt{LC-3}, les presentamos los registros \textbf{N}, \textbf{Z} y \textbf{P}, conocidos como \textbf{códigos de condición} (en inglés, \textit{condition codes}). A diferencia de los registros de 16 bits que vimos hasta ahora, estos tres mencionados tienen 1 solo bit en tamaño. Es por esto que no pueden hacer más que representar un 0, o un 1. Acá entramos un poco en territorio conocido. ¿Recuerdan las \textit{banderas} en \texttt{C}? Así es, estos tres registros cumplen la función de banderas.
 	
-	\subsubsection{¿Cómo se almacenan?} % opcodes, operandos, relación anterior
+	Ahora bien, como toda bandera, tiene que estar marcando algún evento en particular. Los nombres que estos registros reciben, no sugieren mucho respecto a dicho evento. Sin embargo, representan los tres estados de un número entero: \textit{\textbf{N}egative}, \textit{\textbf{Z}ero} y \textit{\textbf{P}ositive}.
+	
+	Lo que sucede es que cada vez que se escribe un valor a un registro de propósito general, estas tres banderas se actualizan dependiendo del signo del número escrito. Así, si se escribe el número \textit{-2}, por ejemplo, el registro N se actualizará en un bit prendido (1), mientras el Z y el P cambiarán en bits apagados (0). Esto nos será de utilidad en la Sección \ref{sec:branching}, donde trataremos el tema de \textit{bifurcación}, que nos permitirá replicar el comportamiento de los ya conocidos \texttt{if} de \texttt{C}.
+	
+	Nótese que como un número que es negativo nunca será positivo o cero, un cero nunca será negativo ni positivo, y tampoco un número positivo será negativo o cero, nunca hay más de uno de estos registros con un bit encendido a la vez. Si se enciende el bit que alguno contiene, los otros dos deben apagarse.\\
+	
+	Como una última aclaración, como los códigos de condición sólo cambian cuando se escribe un valor a un registro de propósito general, \textbf{solamente} las instrucciones que escriban valores en GPR modificarán el valor de estos registros de 1 bit.
+	
+	\subsection{Las instrucciones en memoria}
+	
+	Habiendo visto en la Sección \ref{sec:mar-mdr} que obtener información de la memoria no es tan fácil (y en parte por eso es más lenta de acceder), capaz se nos venga a ocurrir la pregunta: \textit{Si tanto cuesta leer de la memoria, ¿no debería realentizar el proceso de leer instrucciones?}
+	
+	Capaz debemos pensar en otra pregunta antes y pensar, \textit{¿qué es lo que hace lenta a la memoria, en comparación con los registros?} Más allá de la diferencia técnica que puede haber entre la velocidad de acceso a un registro y la velocidad en que la memoria escribe un valor al MDR, desde el punto de vista de la arquitectura, lo que más demora es la transferencia de la información entre los registros y la lógica del procesador, con el MAR y el MDR.
+	
+	Al fin y al cabo, operar con un registro consiste en simplemente operar con él, mientras que leer o escribir en la memoria requiere ingresar la información al MAR (y también al MDR al escribir), enviarle un pulso eléctrico a la memoria, y luego recuperar la información desde el MDR si se lee un valor. Es por esto que decíamos al introducir los registros en la Sección \ref{sec:registers} que el acceso a memoria puede tardar varios ciclos del procesador.\\
+	
+	Para mitigar estas demoras, en las computadoras modernas suele existir otro tipo de espacio de almacenamiento temporal entre la memoria y los registros, conocida como la \textbf{caché}. De forma similar a los registros, la caché es más rápida que la memoria, aunque se diferencia en que no se encuentra en directa cercanía con el procesador como sucede en los registros, por lo que tiende a ser más lenta respecto a estos últimos.
+	
+	Sin irnos mucho de tema, como es razonable pensar que al acceder una dirección de memoria, luego necesitemos las direcciones cercanas a ellas (por ejemplo, las instrucciones suelen estar en direcciones de memoria consecutivas), cada vez que se consulta a la memoria se intenta obtener la información del conjunto de direcciones que rodean a la dirección consultada, y se almacenan en caché. De esta forma, siempre que sea posible, la información se lee desde el espacio de almacenamiento más rápido, antes que consultar a la memoria.
+	
+	Como el enfoque con el que se diseñó \texttt{LC-3} intenta simplificar la comprensión del funcionamiento de una computadora, la arquitectura no especifica la existencia de caché alguna. Por lo tanto, se considera parte del \textit{ciclo de una instrucción} lo que se relaciona al acceso a la memoria para obtener la próxima instrucción a ejecutarse.
 	
 	\subsubsection{¿Cómo se carga una instrucción?} % IR, brevemente ciclo de instrucción, PC (pág 124 pdf)
+	
+	% El ciclo de instrucción
+	
+	\subsubsection{¿Cómo se almacenan?} % opcodes, operandos, relación anterior
 	
 	\subsection{Accediendo a la memoria} % y registros? addressing modes concretos? instrucciones???
 	
 	\section{Aritmética}
 	\label{sec:arithmetic}
 	
-	\section{Bucles y cambio de flujo} % branching?
+	\section{Bifurcación} % if
+	\label{sec:branching}
+	
+	\section{Bucles} % cambio de flujo
 	
 	\section{Entrada y Salida (I/O)}
 	\label{sec:io}
