@@ -15,6 +15,9 @@
 \usepackage{tikz}
 \usetikzlibrary{patterns,decorations.pathreplacing}
 \usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{fmtcount}
+\usepackage{booktabs}
 
 \usepackage[left=3cm,right=3cm,top=3cm,bottom=3cm]{geometry}
 
@@ -108,6 +111,7 @@
 	En el caso de nuestro ejemplo, tenemos que tener las ``instrucciones'' para que nos digan cuando se quiere, por ejemplo, leer de un papel, y que sepamos hacerlo.
 	
 	\subsection{¿Cómo guardamos la información?}
+	\label{sec:isa-memory-intro}
 	
 	Una vez que pudimos leer la información, debemos de tenerla guardada en algún lugar para poder operar con ella. Esto introduce otro componente importante de una computadora, la \textbf{memoria}.
 	
@@ -240,6 +244,7 @@ STOP RUN.
 	¿Recuerdan cuando en la sección \ref{sec:isa-io} nos preguntábamos si los pulsos electricos que nos llegaban en la entrada formaban algún patrón? Bueno, pensemos esto para el caso de las instrucciones que le llegan al procesador. De alguna forma, los pulsos eléctricos que le transmitimos, los 0s y 1s que viajan, deben indicarle al procesador que ejecute la instrucción \texttt{ADD}, por ejemplo. Aquellos detalles, están definidos en el ISA. Y el patrón de aquellos bits, que utiliza nuestro programa como directivas al procesador, son en cierta forma, un \textit{lenguaje}, una forma de comunicarnos con la computadora.\\
 	
 	\subsection{\texttt{LC-3}, un lenguaje de bajo nivel}
+	\label{sec:lc3-low-level}
 	
 	Habiendo entendido un poco mejor \textit{qué} es \texttt{LC-3}, ahora vamos a cerrar con el concepto de lenguaje de \textit{bajo nivel}.
 	
@@ -324,6 +329,158 @@ ADD	R0, R1, R2
 	
 	% TODO: Nombrar emulador web https://wchargin.com/lc3web/
 	\chapter{El \texttt{ISA} de \texttt{LC-3}}
+	
+	Recordando un poco lo visto en el capítulo anterior, el \textit{Instruction Set Architecture} define los elementos que tenemos a disposición como programadores para que podamos escribir código que le permita a la computadora ejecutar las tareas que queramos. Con esto en cuenta, vamos a desarrollar qué es lo que nos ofrece el ISA de \texttt{LC-3}, y cómo podemos utilizarlo para desarrollar programas.
+	
+	Les aseguramos que lograr sumar dos números en un lenguaje de bajo nivel es mucho más emocionante que lograr lo mismo en \texttt{C}.
+	
+	Recomendamos hacer uso del simulador online de \texttt{LC-3} para experimentar con los conceptos que iremos desarrollando en el capítulo: \url{https://wchargin.com/lc3web/}. Más información sobre su uso en el Capítulo 3.
+	
+	% TODO: Usar .BLKW?
+	\section{El acceso a la memoria}
+	
+	Para poder empezar a programar en el lenguaje de \texttt{LC-3}, debemos entender mejor el funcionamiento de una de las partes clave su ISA: la \textbf{memoria}. O más bien, vamos a estar hablando de los distintos elementos de los cuales disponemos para almacenar información.
+	
+	Generalmente, tendemos a generalizar, y le llamamos ``memoria'' a todo aquel dispositivo o medio que guarda algún tipo de dato. Como ya mencionamos en la Sección \ref{sec:isa-memory-intro}, distinguimos la memoria de los \textit{medios de almacenamiento}, los cuales típicamente no son volátiles. Para continuar con este desglose de qué es concretamente lo que podemos llamar como memoria, lo vamos a diferenciar de los \textit{registros}, los cuales vamos a describir en la Sección \ref{sec:registers}.
+	
+	\subsection{La memoria}
+	
+	Como ya venimos adelantando, la memoria, por un lado, es el lugar donde nuestro programa va a estar cargado, y de la cual se van a leer las instrucciones que el procesador va a ejecutar. Por otro lado, también cumple el rol de almacenar la información que se necesita procesar, al igual que posiblemente los resultados generados como producto de las operaciones realizadas.
+	
+	\subsubsection{Tamaño de una dirección de memoria}
+	
+	En la Sección \ref{sec:isa-memory}, habíamos mencionado la capacidad de poder acceder a todos los elementos contenidos en la memoria mediante una serie de \textit{direcciones}, que la dividen en muchos pedazos de igual tamaño. Aquellos pedazos, en el caso de \texttt{LC-3}, pueden almacenar hasta 16 bits cada uno, y es por eso que insistimos en llamar a esta memoria ``16-bit addressable''. Otro nombre que también puede recibir en este caso particular es el de ``\textit{word-addressable}'', ya que el \textit{tamaño de palabra} (\textit{word}, en inglés) en \texttt{LC-3} es también de 16 bits. Esta nomenclatura existe para diferenciarse de las memorias más comunes que almacenan hasta 8 bits por dirección, el equivalente a 1 byte, así recibiendo el nombre de ``\textit{byte-addressable}''.
+	
+	Cabe aclarar que el tamaño o \textbf{longitud de palabra} es, de forma simplificada, la cantidad de bits que el procesador es capaz de procesar en un ciclo de procesamiento\footnote{Concretamente, la cantidad de bits en un ciclo que es capaz de procesar la \textbf{ALU}, \textit{Unidad Artimético-Lógica}, que se encuentra en el procesador y es responsable de llevar a cabo las instrucciones relacionadas con operaciones aritméticas y/o lógicas (como dice su nombre).}. Cada ciclo está definido por la \textit{velocidad de reloj} del procesador en concreto, es decir, la cantidad de operaciones que es capaz de realizar en una unidad de tiempo. Generalmente nos venden esta característica como la ``cantidad de GHz'' a la que operan los núcleos del procesador. Notar que leemos GHz como \textit{gigahertz}, dándose que 1 GHz = $1\,000\,000\,000$ Hz, es decir, $10^9$ operaciones por segundo.
+	
+	\subsubsection{Direcciones de memoria disponibles}
+	
+	De todas formas, otro de los parámetros que nos interesa de la memoria no es sólo ``cuánto puede almacenar cada espacio de memoria'' sino la \textit{cantidad} de aquellos espacios.
+	
+	En el caso de \texttt{LC-3}, en principio, tenemos el acceso a un total de $65\,536$ ($2^{16}$) direcciones de memoria. Esto se da porque, generalmente, si la cantidad de bits necesarios para representar una dirección es menor o igual a la longitud de palabra, éstos pueden ser procesados con mayor eficiencia por el procesador. Véase que al tener $2^{16}$ direcciones, podemos asignarle a cada una, una combinación única de 16 bits.
+	
+	\begin{figure}[h]
+		\centering
+		\begin{tikzpicture}[scale=1.25, every node/.style={transform shape}]
+			\node[label={[yshift=-12pt, xshift=-1pt]90:\textvisiblespace}] (st) at (0,0) {};
+			\foreach [count=\i, evaluate=\x as \y using int(\x/2)]  \x in {0,2}
+				{\node[label={[xshift=-0.5pt, gray]0:\fontsize{4pt}{3pt}\selectfont{}\raisebox{.2pt}{$\times$}$2$}]  (c1\i) at (1,-1+\x) {\y}; \draw[-stealth] (st) -- (c1\i);}
+			\foreach [count=\i, evaluate=\i as \j using int((\i+1)/2)]  \x in {0,...,3} {
+				\pgfmathsetmacro\y{Mod(\x,2)}
+				\pgfmathsetmacro\z{Mod(int(\x / 2),2)}
+				\node(c2\i) at (2,-1.5+\x) {\pgfmathprintnumber{\z}\pgfmathprintnumber{\y}};
+					\draw[-stealth] (c1\j) -- (c2\i);
+				}
+			\foreach [count=\i, evaluate=\i as \j using int((\i+1)/2), evaluate=\x as \xx using \x/2)]  \x in {0,...,7} {
+				\pgfmathsetmacro\p{Mod(\x,2)}
+				\pgfmathsetmacro\y{Mod(int(\x / 2),2)}
+				\pgfmathsetmacro\z{Mod(int(\x / 4),2)}
+				\node (c3\i) at (3.25,-1.75+\xx) {\small\pgfmathprintnumber{\z}\pgfmathprintnumber{\y}\pgfmathprintnumber{\p} $\cdots$ };
+				\draw[-stealth] (c2\j) -- (c3\i);
+			}
+		
+			\draw[dashed, gray] (0.8,-2) -- (0.8,2) -- (1.2,2) -- (1.2,-2) -- cycle;
+			\node at (1,-2.25) {$2^1$};
+			
+			\draw[dashed, gray] (1.7,-2) -- (1.7,2) -- (2.3,2) -- (2.3,-2) -- cycle;
+			\node at (2,-2.25) {$2^2$};
+			
+			\draw[dashed, gray] (2.675,-2) -- (2.675,2) -- (3.275,2) -- (3.275,-2) -- cycle;
+			\node at (3.,-2.25) {$2^3$};
+		\end{tikzpicture}
+	 \caption{Visualización de las nuevas combinaciones únicas que se generan al agregar un bit}
+\end{figure}
+
+	Es común nombrar las direcciones de memoria con su representación en hexadecimal, ya que es mucho más conciso que usar la representación binaria, e incluso la decimal, de una dirección concreta.	Hay que aclarar que estas son todas formas de representar el mismo número, y no cambian el espacio de memoria al que nos referimos. Al fin y al cabo, siempre habrán $2^{16}$ posibles direcciones, pero en vez de decir que accedemos a la dirección \texttt{\color{Brown}b11000000000000} o la dirección \texttt{\color{Brown}\#12288}, la mencionamos como \texttt{\color{Brown}x3000}. 
+	
+	Por si se encuentran confundidos al respecto, la representación de un número en \textbf{hexadecimal} hace uso de 16 símbolos, en vez de los 10 a los que estamos acostumbrados en el sistema decimal. Si normalmente representamos los números en ``base 10'', y en binario los representamos en ``base 2'', en hexadecimal usamos ``base 16''.  De esta forma, los primeros 10 símbolos son idénticos al sistema decimal, del \texttt{0-9}. Sin embargo, los 6 restantes abarcan el rango \texttt{A-F}. Así es, usamos letras como parte de este sistema de numeración.
+	
+	Más allá de la diferencia en la cantidad de símbolos, el sistema hexadecimal es idéntico en comportamiento al sistema decimal. Además, es particularmente conveniente en distintas áreas de la informática, incluyendo el caso de \texttt{LC-3}. Con 16 símbolos, podemos representar el valor de un byte con dos dígitos, ya que tenemos $16\cdot16 = 2^4 \cdot 2^4 = 2^8 = 256$ valores posibles: desde x00 (0) hasta xFF (255). También, nos permite con sólo cuatro dígitos, representar una dirección de memoria, ya que $16^4 = 65\,536 = 2^{16}$. Es por esto que en el párrafo anterior, \texttt{x3000} es la representación de una dirección tal.
+	
+	También, como probablemente se habrán dado cuenta, es costumbre escribir un número en hexadecimal con \texttt{x} o \texttt{0x} al principio (para \texttt{Assembly} en \texttt{LC-3} siempre empezaremos el número en hexa con \texttt{x}), para distinguirlo de un número represntado, por ejemplo, en decimal. La confusión, como en el caso de nuestro ejemplo \texttt{x3000}, claramente parte por el subconjunto compartido de símbolos entre los dos sistemas de representación, a lo que no siempre estaremos usando las letras \texttt{A-F} en un número en hexadecimal.
+	
+	\begin{figure}[h]
+		\begin{multicols}{4}
+			\begin{center}
+				\foreach \i in {0,...,15}{
+					\i $\;\rightarrow$ \Hexadecimalnum{\i}\par
+				}
+			\end{center}
+		\end{multicols}
+	\caption{Equivalencias entre decimal y hexadecimal}
+	\end{figure}
+
+	\subsubsection{Direcciones reservadas}
+	
+	Hay que aclarar que tener \textit{acceso} a $2^{16}$ direcciones de memoria, con un tamaño de 16 bits cada una, \textbf{no} significa que podamos usarlas todas. 
+	Las direcciones del Cuadro \ref{table:reserved-mem} especifican aquellas direcciones reservadas las cuales no podemos usar para guardar información normalmente.
+	
+	\begin{table}[h]
+		\centering
+		\begin{tabular}{l l l}
+			\toprule
+			\textbf{Dirección} & \textbf{Nombre del registro} & \textbf{Más información del registro} \\ \midrule
+			\texttt{xFE00} & Registro de estado del teclado & \textit{Keyboard status register} (KBSR) \\
+			\texttt{xFE02} & Registro de datos del teclado & \textit{Keyboard data register} (KBDR)\\
+			\texttt{xFE04} & Registro de estado de la pantalla & \textit{Display status register} (DSR)\\
+			\texttt{xFE06} & Registro de datos de la pantalla & \textit{Display data register} (DDR)\\
+			\texttt{xFFFE} & Registro de control de la máquina & \textit{Machine control register} (MCR) \\
+			\bottomrule
+		\end{tabular}
+		\caption{Direcciones de memoria reservadas}
+		\label{table:reserved-mem}
+	\end{table}
+
+	La mayor parte de ellas están relacionadas con el I/O de la computadora, por lo que las trataremos en su apartado correspondiente (Sección \ref{sec:io}).\\
+	
+	Sí aclararemos muy brevemente la función de la dirección de memoria \texttt{xFFFE}, que como pueden ver en la tabla, es conocida como el \textit{Registro de control de la máquina}, abreviado MCR por su nombre en inglés. Sin entrar en detalles técnicos, esta dirección de memoria se encuentra vinculada de forma tal con el procesador, que podemos apagar el bit más significativo\footnote{El \textbf{bit más significativo} de un número binario es aquel que representa el mayor valor posible. Si tenemos 16 bits, el bit más significativo sería el primero de todos leyendo desde la izquierda (\texttt{\textcolor{red}{0}10010011011110101}), independientemente si es un \textit{1} o un \textit{0}. Funciona de la misma forma que podemos decir que la posición que más vale en el número \textit{1024}, es donde está el \textit{1}, ya que el hecho que esté ahí, le añade 1000 al valor del número.} del valor que contiene para detener a la computadora, y así la ejecución de la siguiente instrucción.
+	
+	Conste que explicamos la función de esta dirección con meros fines informativos, ya que programando en \texttt{Assembly} podremos lograr el mismo efecto usando la instrucción \texttt{HALT}. Ya pronto vamos a ver ejemplos donde la verán en acción.
+	
+	\subsection{Los registros}
+	\label{sec:registers}
+	
+	Tal y como les prometimos en la Sección \ref{sec:lc3-low-level}, vamos explicar de una buena vez qué son los registros, y por qué es tan importante conocerlos para poder programar en el lenguaje de \texttt{LC-3}.
+	
+	Los \textbf{registros} son espacios de almacenamiento temporales que son accesibles con mayor rapidez que la memoria. De hecho, puede tomar varios ciclos del procesador leer un valor desde esta última, mientras que los registros se pueden acceder en 1 solo ciclo. Por este motivo, los registros son frecuentemente utilizados para guardar los resultados intermedios obtenidos de las operaciones que realicemos durante la ejecución de un programa. La razón por la cual no se utilizan registros en reemplazo de la memoria, es que su rápidez, entre otros factores, se debe a que están incluidos dentro del procesador, sumado a que son más caros de producir.
+	
+	De esta forma, en la mayoría de las arquitecturas, incluida la de \texttt{LC-3}, se incluyen los llamados \textbf{registros de propósito general} (cada uno toma el nombre de \textit{general purpose register}, abreviado GPR). Estos registros son utilizados como punto de llegada de la información desde la memoria, transfiriéndose los datos en ellos a pedido del programa, mediante el uso de ciertas instrucciones definidas en el ISA para este propósito. Una vez en los registros, se pueden llevar a cabo las operaciones que sean necesarias.
+	
+	En \texttt{LC-3} disponemos de un total de 8 registros de propósito general, aunque ya veremos que de forma similar con la memoria, no podemos usar todos ellos indiscriminadamente. Se enumeran del 0 al 7, y podemos hacer referencia a ellos dentro del \texttt{Assembly} de \texttt{LC-3}, indicándolos con una letra \texttt{R}, seguido del número de registro identificado. Capaz recordarán la Figura \ref{fig:add-asm-example}, en la cual anticipamos un ejemplo del uso de la instrucción \texttt{ADD}. Si incorporamos lo que dijimos sobre los registros, podemos ver claramente que allí hicimos referencia a los registros identificados 0, 1 y 2.\\
+	
+	Adicionalmente, si bien no es nuestro enfoque aprender a programar en código de máquina, podemos ver cómo utilizaríamos los registros en una situación de ese tipo. De hecho, podemos referirnos a otra figura de la misma sección que la del ejemplo de uso de la instrucción \texttt{ADD}, la Figura \ref{fig:add-machine-example}.
+	
+	Cuando usamos 1s y 0s, especificaremos el registro con su identificador representado en binario, en las posiciones que el ISA indiquen para la instrucción en uso. Así, en el ejemplo de la figura mencionada, los bits enumerados del 11 al 9 (\texttt{[11:9]}) de la instrucción \texttt{ADD} se corresponden con el identificador del registro en el cual se va a guardar el resultado de la suma. Mientras, los bits \texttt{[8:6]} y \texttt{[2:0]} se corresponden con los identificadores de los registros que contienen los sumandos. Posteriormente, en la Sección \ref{sec:arithmetic}, veremos que esta no es la única forma en la cual podemos indicarle los \textit{operandos} a la función \texttt{ADD}. %OJO que esto se cumpla
+	
+	\subsubsection{Registros de propósito general reservados} % R0, R5 y/o R6 capaz si hay stack? Seguro R7.
+	
+	\subsection{El MAR y el MDR} % proceso de cargar en memoria, métodos de direccionamiento?
+	
+	\subsection{Los códigos de condición} %npz? relacionar con MAR-MDR?
+	
+	\subsection{Las instrucciones en memoria} 
+	
+	\subsubsection{¿Cómo se almacenan?} % opcodes, operandos, relación anterior
+	
+	\subsubsection{¿Cómo se carga una instrucción?} % IR, brevemente ciclo de instrucción, PC (pág 124 pdf)
+	
+	\subsection{Accediendo a la memoria} % y registros? addressing modes concretos? instrucciones???
+	
+	\section{Aritmética}
+	\label{sec:arithmetic}
+	
+	\section{Bucles y cambio de flujo} % branching?
+	
+	\section{Entrada y Salida (I/O)}
+	\label{sec:io}
+	
+	\section{Subrutinas}
+	
+	\section{Recursión: el stack}
+	
+	\section{Interrupciones y privilegios} % PSR
+	
+	\chapter{El simulador online de \texttt{LC-3}}
 	
 	\chapter{Bibliografía} % TODO: extender y armar bien posta
 	
