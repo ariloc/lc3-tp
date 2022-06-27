@@ -510,21 +510,37 @@ ADD	R0, R1, R2
 	
 	Capaz debemos pensar en otra pregunta antes y pensar, \textit{¿qué es lo que hace lenta a la memoria, en comparación con los registros?} Más allá de la diferencia técnica que puede haber entre la velocidad de acceso a un registro y la velocidad en que la memoria escribe un valor al MDR, desde el punto de vista de la arquitectura, lo que más demora es la transferencia de la información entre los registros y la lógica del procesador, con el MAR y el MDR.
 	
-	Al fin y al cabo, operar con un registro consiste en simplemente operar con él, mientras que leer o escribir en la memoria requiere ingresar la información al MAR (y también al MDR al escribir), enviarle un pulso eléctrico a la memoria, y luego recuperar la información desde el MDR si se lee un valor. Es por esto que decíamos al introducir los registros en la Sección \ref{sec:registers} que el acceso a memoria puede tardar varios ciclos del procesador.\\
+	Al fin y al cabo, operar con un registro consiste en simplemente accederlo directamente, mientras que leer o escribir en la memoria requiere ingresar la información al MAR (y también al MDR al escribir), enviarle un pulso eléctrico a la memoria, y luego recuperar la información desde el MDR si se lee un valor. Es por esto que decíamos al introducir los registros en la Sección \ref{sec:registers} que el acceso a memoria puede tardar varios ciclos del procesador.\\
 	
 	Para mitigar estas demoras, en las computadoras modernas suele existir otro tipo de espacio de almacenamiento temporal entre la memoria y los registros, conocida como la \textbf{caché}. De forma similar a los registros, la caché es más rápida que la memoria, aunque se diferencia en que no se encuentra en directa cercanía con el procesador como sucede en los registros, por lo que tiende a ser más lenta respecto a estos últimos.
 	
 	Sin irnos mucho de tema, como es razonable pensar que al acceder una dirección de memoria, luego necesitemos las direcciones cercanas a ellas (por ejemplo, las instrucciones suelen estar en direcciones de memoria consecutivas), cada vez que se consulta a la memoria se intenta obtener la información del conjunto de direcciones que rodean a la dirección consultada, y se almacenan en caché. De esta forma, siempre que sea posible, la información se lee desde el espacio de almacenamiento más rápido, antes que consultar a la memoria.
 	
-	Como el enfoque con el que se diseñó \texttt{LC-3} intenta simplificar la comprensión del funcionamiento de una computadora, la arquitectura no especifica la existencia de caché alguna. Por lo tanto, se considera parte del \textit{ciclo de una instrucción} lo que se relaciona al acceso a la memoria para obtener la próxima instrucción a ejecutarse.
+	Como el enfoque con el que se diseñó \texttt{LC-3} intenta simplificar la comprensión del funcionamiento de una computadora, la arquitectura no especifica la existencia de caché alguna. Por lo tanto, se considera parte del \textit{ciclo de instrucción}, lo que se relaciona al acceso a la memoria para obtener la próxima instrucción a ejecutarse.
 	
 	\subsubsection{¿Cómo se carga una instrucción?} % IR, brevemente ciclo de instrucción, PC (pág 124 pdf)
 	
+	Habiendo aclarado que las instrucciones se leen de la memoria, y considerando que cuando queremos llevar a cabo operaciones con información desde ella, debemos de copiarla en un registro; surge otra duda: \textit{¿En qué registro se cargan las instrucciones?} Seguramente no es un registro de propósito general, pues ya dejamos en claro cuáles no podemos utilizar con el Cuadro \ref{table:reserved-reg}, y ninguno de ellos estaba relacionado con lo que estamos hablando.
+	
+	Efectivamente, el ISA de \texttt{LC-3} define otro registro más, conocido como el \textbf{Instruction Register} (abreviado IR), en el cual, al comienzo de cada \textit{ciclo de instrucción}, se carga la instrucción leída desde la memoria.\\
+	
+	De todas formas, como cualquier pieza de información leída desde la memoria, el espacio donde está almacenada la instrucción debe tener una dirección asignada para que pueda ser accedida. Por lo tanto, existe otro registro más (sí, otro más!), el cual cumple el rol de mantener la dirección de memoria de la próxima instrucción a ejecutarse. Éste recibe el nombre de \textbf{Program Counter} (abreviado PC).
+	
+	Al iniciarse el simulador de \texttt{LC-3}, el PC comúmente comienza en la dirección \texttt{x0200}, donde comenzaría el código del sistema operativo. Al finalizar, luego éste le transferiría el control al código en la posición de memoria \texttt{x3000}. Como estaremos la mayoría del tiempo utilizando el simulador online, se aconseja que los programas que escriban comiencen con la \textit{pseudo-instrucción} \texttt{.ORIG x3000}, la cual indica que su programa escrito en \texttt{Assembly} se coloque en la memoria desde la posición \texttt{x3000} en adelante. Más detalles sobre los \textit{pseudo-códigos} se irán revelando a medida que nos sean útiles en los ejemplos que vayamos mostrando. \\
+	
+	Así entonces, al comienzo de cada \textit{ciclo de instrucción}, se carga el PC en el MAR, seguido inmediatamente de incrementar el PC en 1 (apuntando a la instrucción a ejecutar en el próximo ciclo). Luego, se consulta la dirección del MAR en la memoria, guardándose la instrucción cargada, al MDR. Finalmente, se transfiere el contenido del MDR en el IR.
+	
+	Esta etapa del \textit{ciclo de instrucción} se la llama \textbf{FETCH}, y es la primera de múltiples etapas que vamos a describir brevemente en el próximo apartado.
+	
+	\subsubsection{El \textit{ciclo de instrucción}}
+	
 	% El ciclo de instrucción
 	
-	\subsubsection{¿Cómo se almacenan?} % opcodes, operandos, relación anterior
+	\subsubsection{¿Cómo están almacenadas?} % opcodes, operandos, relación anterior
 	
 	\subsection{Accediendo a la memoria} % y registros? addressing modes concretos? instrucciones???
+	
+	\subsection{Repasando}
 	
 	\section{Aritmética}
 	\label{sec:arithmetic}
@@ -551,6 +567,7 @@ ADD	R0, R1, R2
 		\item \url{https://www.techpowerup.com/review/intel-core-i9-12900k-alder-lake-12th-gen/2.html}. Consultado el 23 de junio de 2022.
 		\item \url{https://www.gamersnexus.net/guides/833-reading-a-cpu-die}. Consultado el 23 de junio de 2022.
 		\item \url{https://www.tutorialbrain.com/mainframe/cobol_hello_world_program/}. Consultado el 25 de junio de 2022.
+		\item \url{https://www.cis.upenn.edu/~cit593/resources/lc3manual.html}. Consultado el 27 de junio de 2022.
 		\item Introduction to Computer Systems, Patt \& Patel % extender y armar bien
 	\end{itemize}
 	
